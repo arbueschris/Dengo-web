@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dengo</title>
+<meta name="theme-color" content="#DE7150">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dengo">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent:#DE7150; --accent-2:#F2A07E; --accent-soft:color-mix(in srgb, var(--accent) 14%, var(--card));
+  --bg:#F7F5F4; --card:#FFFFFF; --ink:#1B1A19; --muted:#6E6863; --soft:#F3F1F0; --line:#ECE8E6;
+  --stage:#242322;
+  --green:#3FBF8B; --green-soft:#E7F7F0; --violet:#8F5BD6; --violet-soft:#F1EAFB; --blue:#3E6FD1; --blue-soft:#E8EFFB;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#181615; --card:#23201F; --ink:#F5F0ED; --muted:#A9A19B; --soft:#2D2927; --line:#332E2C;
+    --green-soft:#1E3128; --violet-soft:#2A2136; --blue-soft:#1F2839;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#181615; --card:#23201F; --ink:#F5F0ED; --muted:#A9A19B; --soft:#2D2927; --line:#332E2C;
+  --green-soft:#1E3128; --violet-soft:#2A2136; --blue-soft:#1F2839;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+html,body{margin:0;height:100%}
+body{
+  font-family:'Montserrat',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  background:var(--stage);color:var(--ink);
+  display:flex;flex-direction:column;align-items:center;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* barra do protótipo */
+.proto{
+  width:min(100%,400px);flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 14px;color:#EDE7E3;font-size:12px;font-weight:500;
+}
+.seg{display:flex;background:#3a3735;border-radius:999px;padding:3px}
+.seg button{padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;color:#CFC8C3}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+
+/* telefone */
+.phone{
+  position:relative;width:min(100%,400px);flex:1 1 auto;min-height:0;max-height:820px;
+  background:var(--bg);border-radius:34px;overflow:hidden;display:flex;flex-direction:column;
+  margin-bottom:12px;
+}
+@media (max-width:500px){ .phone{border-radius:26px 26px 0 0;margin-bottom:0} }
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:110px;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+
+/* cabeçalho */
+.hero{
+  background:linear-gradient(180deg,var(--accent) 0%,var(--accent-2) 100%);
+  padding:22px 20px 92px;color:#fff;display:flex;align-items:center;justify-content:space-between;
+  border-radius:0 0 34px 34px;
+}
+.hero h1{margin:0;font-size:24px;font-weight:600;letter-spacing:-.2px}
+.pair{display:flex;align-items:center;gap:5px}
+.av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:15px;color:#fff;border:2px solid rgba(255,255,255,.85)}
+.av.r{background:#4F7BD9}.av.p{background:#E0568A}
+.pair svg{width:20px;height:20px;fill:#fff}
+.stack{margin-top:-72px;padding:0 16px;display:flex;flex-direction:column;gap:14px}
+.stack.plain{margin-top:0;padding-top:18px}
+
+.card{background:var(--card);border-radius:22px;padding:18px;box-shadow:0 1px 0 var(--line)}
+.card h2{margin:0 0 4px;font-size:18px;font-weight:700;text-align:center}
+.card .sub{margin:0 0 14px;font-size:13px;color:var(--muted);text-align:center;line-height:1.4}
+.left h2,.left .sub{text-align:left}
+
+.item{display:flex;align-items:center;gap:12px;background:var(--soft);border-radius:16px;padding:12px;margin-bottom:8px;font-size:14px;font-weight:500}
+.ico{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:0 0 auto}
+.ico svg{width:22px;height:22px}
+.ico.o{background:var(--accent-soft);color:var(--accent)}
+.ico.b{background:var(--blue-soft);color:var(--blue)}
+.ico.g{background:var(--green-soft);color:var(--green)}
+.ico.v{background:var(--violet-soft);color:var(--violet)}
+
+.cta{display:block;width:100%;background:var(--accent);color:#fff;font-weight:700;font-size:15px;letter-spacing:.6px;padding:17px;border-radius:16px;margin-top:8px;transition:transform .12s}
+.cta:active{transform:scale(.98)}
+.cta.text{background:var(--accent-soft);color:var(--accent)}
+.link{display:block;margin:14px auto 0;font-size:12.5px;font-weight:700;letter-spacing:.5px;color:var(--accent);text-transform:uppercase}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.quick{background:var(--card);border-radius:22px;padding:14px 16px 16px;min-height:124px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;align-items:flex-start;border:2px solid transparent;transition:border-color .15s}
+.quick[aria-pressed="true"]{border-color:var(--accent)}
+.quick .ico{width:46px;height:46px;border-radius:50%}
+.quick span.t{font-size:16px;font-weight:500;line-height:1.25}
+
+.faces{display:flex;justify-content:space-between;gap:6px;padding:0 2px}
+.face{width:52px;height:52px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:26px;filter:grayscale(1);opacity:.55;transition:all .18s}
+.face.on{filter:none;opacity:1;transform:scale(1.08)}
+button.face:active{transform:scale(.94)}
+.mood-label{text-align:center;font-size:13px;font-weight:600;margin-top:12px}
+
+.sug-t{font-size:13.5px;color:var(--muted);margin:16px 0 8px}
+.sug{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--soft);border-radius:14px;padding:11px 12px;margin-bottom:8px;font-size:14.5px;font-weight:500}
+.sug .h{width:30px;height:30px;border-radius:9px;background:#F0555E;display:grid;place-items:center;flex:0 0 auto}
+.sug .h svg{width:16px;height:16px;fill:#fff}
+.sug .go{margin-left:auto;width:18px;height:18px;flex:0 0 auto}
+
+.mural-thumb{border-radius:16px;overflow:hidden;background:#FDEFE2;aspect-ratio:16/10;margin-bottom:12px}
+.mural-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.gobtn{display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--soft);border-radius:14px;padding:15px 16px;font-size:15px;font-weight:500}
+.gobtn svg{width:18px;height:18px}
+
+.banner{border-radius:18px;padding:14px 16px;font-size:14px;font-weight:600;line-height:1.4;display:flex;gap:10px;align-items:center}
+.banner.stay{background:var(--green-soft);color:var(--green)}
+.banner.alone{background:var(--violet-soft);color:var(--violet)}
+.note{background:var(--accent-soft);border-radius:18px;padding:14px 16px}
+.note b{display:block;font-size:12px;color:var(--accent);margin-bottom:4px}
+.note p{margin:0;font-size:15px;line-height:1.4}
+.status{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:13.5px;font-weight:600;color:var(--accent);justify-content:center}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--accent);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+
+/* nav */
+.nav{position:absolute;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));background:var(--card);border-radius:24px;padding:10px;display:flex;justify-content:space-between;box-shadow:0 8px 28px rgba(0,0,0,.12)}
+.nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 0;border-radius:16px;font-size:12.5px;font-weight:500;color:var(--muted)}
+.nav button svg{width:22px;height:22px}
+.nav button[aria-current="page"]{background:var(--accent);color:#fff;flex:1.15}
+
+/* páginas simples */
+.top{padding:26px 20px 4px;display:flex;align-items:center;gap:10px}
+.top h1{margin:0;font-size:24px;font-weight:700;letter-spacing:-.2px}
+.back{width:38px;height:38px;border-radius:50%;background:var(--card);display:grid;place-items:center}
+.back svg{width:18px;height:18px}
+.hist{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line)}
+.hist:last-child{border:0}
+.hist .ico{width:38px;height:38px;border-radius:12px}
+.hist p{margin:0;font-size:14px;line-height:1.4}
+.hist small{color:var(--muted);font-size:12px}
+.empty{text-align:center;color:var(--muted);font-size:14px;padding:26px 10px;line-height:1.5}
+
+.big{font-size:44px;font-weight:700;color:var(--accent);text-align:center;line-height:1}
+.big-l{text-align:center;color:var(--muted);font-size:13px;margin-top:6px}
+.field{display:flex;flex-direction:column;gap:6px;margin-top:14px;font-size:13px;font-weight:600;color:var(--muted)}
+.field input{font:inherit;font-size:15px;color:var(--ink);background:var(--soft);border:0;border-radius:12px;padding:12px}
+.prow{display:flex;align-items:center;gap:12px;padding:8px 0}
+.prow .av{width:44px;height:44px;font-size:17px}
+.prow p{margin:0;font-size:15px;font-weight:600}
+.prow small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
+
+/* mural */
+.canvas-wrap{background:#FDEFE2;border-radius:18px;overflow:hidden;aspect-ratio:16/10;touch-action:none}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.tools{display:flex;align-items:center;gap:10px;margin:12px 0}
+.sw{width:30px;height:30px;border-radius:50%;border:3px solid transparent;box-shadow:0 0 0 1px var(--line)}
+.sw[aria-pressed="true"]{border-color:var(--card);box-shadow:0 0 0 2px var(--ink)}
+.tools .clr{margin-left:auto;font-size:13px;font-weight:600;color:var(--muted);padding:8px 10px}
+.gal{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gal figure{margin:0}
+.gal .mural-thumb{margin:0 0 4px;border-radius:12px}
+.gal figcaption{font-size:11.5px;color:var(--muted)}
+
+/* sheet */
+.veil{position:absolute;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .2s;z-index:5}
+.veil.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:28px 28px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .25s ease;z-index:6;max-height:88%;overflow-y:auto}
+.sheet.on{transform:none}
+.sheet h2{margin:0 0 4px;font-size:19px;font-weight:700}
+.sheet .sub{margin:0 0 14px;font-size:13px;color:var(--muted)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{display:flex;align-items:center;gap:10px;text-align:left;background:var(--soft);border-radius:16px;padding:12px;font-size:14px;font-weight:500;border:2px solid transparent}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.opt .ico{width:36px;height:36px;border-radius:11px}
+.opt .ico svg{width:19px;height:19px}
+
+.toast{position:absolute;left:50%;bottom:104px;transform:translate(-50%,20px);background:var(--ink);color:var(--bg);font-size:13.5px;font-weight:600;padding:12px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:all .25s;z-index:9;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* proto bar */
+.pill{padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;background:#3a3735;color:#E6DFDA}
+.pill:hover{background:#4a4644}
+
+/* login */
+.authhero{background:linear-gradient(180deg,var(--accent) 0%,var(--accent-2) 100%);padding:54px 24px 104px;color:#fff;text-align:center;border-radius:0 0 34px 34px}
+.authhero .logo{font-size:38px;font-weight:700;letter-spacing:-.6px;margin:0}
+.authhero p{margin:8px auto 0;font-size:14.5px;line-height:1.45;max-width:270px;opacity:.95}
+.tabs{display:flex;background:var(--soft);border-radius:14px;padding:4px;margin-bottom:8px}
+.tabs button{flex:1;padding:11px;border-radius:11px;font-size:14px;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.field input::placeholder{color:var(--muted);opacity:.7}
+.err{color:#D8264B;font-size:13px;font-weight:600;margin:14px 0 0;line-height:1.4}
+.hint{font-size:12px;color:var(--muted);text-align:center;margin:14px 8px 0;line-height:1.5}
+.code{font-size:36px;font-weight:700;letter-spacing:7px;text-align:center;color:var(--accent);margin:12px 0 4px;padding-left:7px}
+.copy{display:block;margin:0 auto;font-size:13px;font-weight:600;color:var(--accent);padding:8px 12px}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12.5px;margin:6px 0}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.field input.codein{text-transform:uppercase;letter-spacing:4px;text-align:center;font-weight:700;font-size:18px}
+.out{display:block;width:100%;margin-top:14px;padding:15px;border-radius:16px;background:var(--soft);font-size:14.5px;font-weight:600}
+.screen.noNav{padding-bottom:24px}
+
+/* temas de cor: só o acento muda, o resto do sistema fica igual */
+:root[data-accent="rosa"]{--accent:#D6547F;--accent-2:#EE8DAB}
+:root[data-accent="lavanda"]{--accent:#7B61D9;--accent-2:#A996EE}
+:root[data-accent="oceano"]{--accent:#2A7BA8;--accent-2:#6DB6DE}
+:root[data-accent="floresta"]{--accent:#2F8A5E;--accent-2:#7CC9A1}
+
+.themes{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.theme{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 2px;border-radius:14px;font-size:11.5px;font-weight:600;color:var(--muted);border:2px solid transparent}
+.theme i{width:38px;height:38px;border-radius:50%;display:block}
+.theme[aria-pressed="true"]{border-color:var(--accent);color:var(--ink)}
+
+/* pedidos e dengo */
+.tx{display:block;width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--soft);border:0;border-radius:14px;padding:13px;resize:none;line-height:1.4}
+.tx::placeholder{color:var(--muted);opacity:.7}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.chip{padding:8px 13px;border-radius:999px;background:var(--soft);font-size:13px;font-weight:600;border:2px solid transparent}
+.chip[aria-pressed="true"]{background:var(--accent);color:#fff}
+.card.dengo{background:var(--accent-soft)}
+.card.dengo .chip{background:var(--card)}
+.card.dengo .chip[aria-pressed="true"]{background:var(--accent)}
+.card.dengo .tx{background:var(--card);margin-top:10px}
+.cta svg{width:17px;height:17px;fill:#fff;vertical-align:-3px;margin-right:8px}
+.mut{color:var(--muted);font-size:13px;font-weight:500}
+.item b{font-weight:700}
+
+/* ---- ajustes da versão web (tela cheia no celular) ---- */
+html{background:var(--stage)}
+body{background:var(--stage)}
+.phone{max-height:none;margin-bottom:0;border-radius:0;width:min(100%,480px);height:100%}
+@media (min-width:520px){.phone{border-radius:28px;margin:12px 0;height:calc(100% - 24px);max-height:920px}}
+.nav{position:absolute}
+.screen{padding-bottom:120px}
+.screen.noNav{padding-bottom:24px}
+.cta[disabled]{opacity:.6}
+textarea{font-family:inherit}
+.copy+.copy{margin-top:2px}
+.hist .ico{width:38px;height:38px;border-radius:12px}
+.hist .ico svg{width:20px;height:20px}
+.gal .mural-thumb{aspect-ratio:16/10}
+.canvas-wrap svg{touch-action:none;cursor:crosshair;display:block}
+</style>
+</head>
+<body>
+<main class="phone" id="phone">
+  <div class="screen noNav" id="screen"></div>
+  <nav class="nav" id="nav" aria-label="Navegação" style="display:none"></nav>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</main>
+<noscript>Ative o JavaScript para usar o Dengo.</noscript>
+<script type="module">
+const I={
+ drop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.5 4.2 6 7 6 10a6 6 0 0 1-12 0c0-3 2.5-5.8 6-10z"/></svg>',
+ pill:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="13" rx="3"/><path d="M8 4h8v4H8zM12 11.5v6M9 14.5h6"/></svg>',
+ heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+ heartF:'<svg viewBox="0 0 24 24"><path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z"/></svg>',
+ lotus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M5 20c2-1 4-1.500 7-1.500s5 .5 7 1.500M12 8v6M7 12l5 2 5-2"/></svg>',
+ choc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 9h14M5 15h14M12 3v18"/></svg>',
+ tea:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9zM17 10h1.500a2.500 2.500 0 0 1 0 5H17M8 3v2M12 3v2"/></svg>',
+ hug:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="6" r="2.500"/><circle cx="16" cy="7" r="2"/><path d="M4 20v-4a5 5 0 0 1 10 0v4M14 20v-3a4 4 0 0 1 6 -3.500"/></svg>',
+ hand:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V6a1.500 1.500 0 0 1 3 0v5M11 11V4.500a1.500 1.500 0 0 1 3 0V11M14 11V6a1.500 1.500 0 0 1 3 0v7a6 6 0 0 1-6 6h-1a5 5 0 0 1-4-2l-2-3a1.500 1.500 0 0 1 2.500-1.500L8 13"/></svg>',
+ chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
+ back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+ home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg>',
+ hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.700L3 8M3 3v5h5M12 7v5l3 2"/></svg>',
+ user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+ msg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4V5z"/></svg>',
+ brush:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c3 0 4-1 4-3a2.500 2.500 0 0 1 5 0c0 2-1 3-3 3H4zM12 14L20 5"/></svg>'
+};
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut as fbSignOut, sendPasswordResetEmail, updateProfile
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {
+  getFirestore, doc, collection, onSnapshot, updateDoc, setDoc, getDoc, addDoc, deleteField,
+  writeBatch, query, orderBy, limit
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+/* ====== SUA CONFIGURAÇÃO DO FIREBASE ====== */
+const firebaseConfig = {
+  apiKey: "AIzaSyCwfLUCOVivBQ9GSkVRP9Bvk3aWfFYZbZ4",
+  authDomain: "dengo-fb19b.firebaseapp.com",
+  projectId: "dengo-fb19b",
+  storageBucket: "dengo-fb19b.firebasestorage.app",
+  messagingSenderId: "1095642048544",
+  appId: "1:1095642048544:web:de32f6e46ca20e0b26b445"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ---------- constantes ---------- */
+const MOODS = [{e:'😠',n:'Com raiva'},{e:'😢',n:'Triste'},{e:'😐',n:'Meio assim'},{e:'🙂',n:'Bem'},{e:'😄',n:'Radiante'}];
+const QUICK = ['Bolsa quente','Remédio','Chocolate','Chá','Água'];
+const DENGOS = ['Abraço','Cafuné','Colo','Massagem','Atenção'];
+const THEMES = [
+  {k:'coral',n:'Coral',a:'#DE7150',b:'#F2A07E'},
+  {k:'rosa',n:'Rosa',a:'#D6547F',b:'#EE8DAB'},
+  {k:'lavanda',n:'Lavanda',a:'#7B61D9',b:'#A996EE'},
+  {k:'oceano',n:'Oceano',a:'#2A7BA8',b:'#6DB6DE'},
+  {k:'floresta',n:'Floresta',a:'#2F8A5E',b:'#7CC9A1'}
+];
+const AV = ['#4F7BD9','#E0568A'];
+const PENS = ['#D8264B','#3E6FD1','#2E9E6B','#1B1A19'];
+
+/* ---------- utilidades ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const first = n => String(n || '').trim().split(/\s+/)[0] || '';
+const pad = n => String(n).padStart(2, '0');
+const hhmm = ts => { const d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const dayLabel = ts => { const d = new Date(ts), t = new Date(); return d.toDateString() === t.toDateString() ? 'hoje' : pad(d.getDate()) + '/' + pad(d.getMonth() + 1); };
+const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+let toastT;
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
+const buzz = () => { try { navigator.vibrate && navigator.vibrate([120, 60, 120]); } catch (e) {} };
+
+function authMessage(e) {
+  const map = {
+    'auth/email-already-in-use': 'Já existe uma conta com esse e-mail. Toque em Entrar.',
+    'auth/invalid-email': 'Digite um e-mail válido, como voce@email.com.',
+    'auth/weak-password': 'A senha precisa ter pelo menos 6 caracteres.',
+    'auth/invalid-credential': 'E-mail ou senha incorretos. Confira e tente de novo.',
+    'auth/wrong-password': 'E-mail ou senha incorretos. Confira e tente de novo.',
+    'auth/user-not-found': 'E-mail ou senha incorretos. Confira e tente de novo.',
+    'auth/too-many-requests': 'Muitas tentativas. Espere um pouco e tente de novo.',
+    'auth/network-request-failed': 'Sem internet. Confira a conexão e tente de novo.',
+    'auth/unauthorized-domain': 'Este endereço ainda não foi liberado no Firebase (veja o guia, passo "Domínio autorizado").'
+  };
+  return map[(e && e.code) || ''] || 'Não deu certo. Tente de novo em instantes.';
+}
+
+/* ---------- estado ---------- */
+const S = {
+  user: null, authReady: false, me: null, meReady: false, partner: null, couple: null, hist: [], mural: [],
+  mode: 'login', err: '', busy: false, tab: 'home', screen: null, pen: PENS[0], ped: '', dKind: null, dNote: '', theme: 'coral'
+};
+let draft = [];
+let unsubMe = null, unsubPartner = null, coupleUnsubs = [], curPartner = null, curCid = null;
+
+function stopAll() {
+  unsubMe && unsubMe(); unsubMe = null;
+  unsubPartner && unsubPartner(); unsubPartner = null;
+  coupleUnsubs.forEach(f => f()); coupleUnsubs = [];
+  curPartner = null; curCid = null;
+  S.me = null; S.meReady = false; S.partner = null; S.couple = null; S.hist = []; S.mural = [];
+}
+
+onAuthStateChanged(auth, u => {
+  stopAll();
+  S.user = u; S.authReady = true;
+  if (u) {
+    unsubMe = onSnapshot(doc(db, 'users', u.uid),
+      snap => { S.me = snap.exists() ? { uid: snap.id, ...snap.data() } : null; S.meReady = true; syncCouple(); render(); },
+      () => { S.meReady = true; render(); });
+  }
+  render(true);
+});
+
+function syncCouple() {
+  const pu = (S.me && S.me.partnerUid) || null, cid = (S.me && S.me.coupleId) || null;
+  if (pu !== curPartner) {
+    unsubPartner && unsubPartner(); unsubPartner = null; curPartner = pu; S.partner = null;
+    if (pu) unsubPartner = onSnapshot(doc(db, 'users', pu), s => { S.partner = s.exists() ? { uid: s.id, ...s.data() } : null; render(); }, () => {});
+  }
+  if (cid !== curCid) {
+    coupleUnsubs.forEach(f => f()); coupleUnsubs = []; curCid = cid; S.couple = null; S.hist = []; S.mural = [];
+    if (cid) {
+      const cr = doc(db, 'couples', cid);
+      coupleUnsubs = [
+        onSnapshot(cr, s => { const next = s.exists() ? { id: s.id, ...s.data() } : null; announce(S.couple, next); S.couple = next; render(); }, () => {}),
+        onSnapshot(query(collection(cr, 'hist'), orderBy('ts', 'desc'), limit(60)), s => { S.hist = s.docs.map(d => ({ id: d.id, ...d.data() })); render(); }, () => {}),
+        onSnapshot(query(collection(cr, 'mural'), orderBy('ts', 'desc'), limit(12)), s => { S.mural = s.docs.map(d => ({ id: d.id, ...d.data() })); render(); }, () => {})
+      ];
+    }
+  }
+}
+
+/* Avisos dentro do app quando o par faz algo (o app precisa estar aberto) */
+function announce(prev, next) {
+  if (!prev || !next || !S.me || !S.me.partnerUid) return;
+  const pid = S.me.partnerUid, mid = S.me.uid, pn = first(S.partner && S.partner.name) || 'Seu amor';
+  const g = (o, k, u) => (o && o[k] && o[k][u]) || null;
+  const nd = g(next, 'dengo', pid), pd = g(prev, 'dengo', pid);
+  const nr = g(next, 'req', pid), pr = g(prev, 'req', pid);
+  let msg = null;
+  if (nd && (!pd || pd.ts !== nd.ts) && nd.status === 'pending') msg = `${pn} pediu dengo 💛 ${nd.kind}`;
+  else if (nr && (!pr || pr.ts !== nr.ts) && nr.status === 'pending') msg = `${pn} fez um pedido: ${nr.text}`;
+  else if (next.note && next.note.from === pid && (!prev.note || prev.note.ts !== next.note.ts)) msg = `${pn} mandou um recado 💌`;
+  else if (next.presence && next.presence.by === pid && (!prev.presence || prev.presence.kind !== next.presence.kind || prev.presence.by !== pid))
+    msg = next.presence.kind === 'stay' ? `${pn} quer você por perto 💚` : `${pn} precisa ficar a sós 💜`;
+  else {
+    const mm = g(next, 'dengo', mid), mp = g(prev, 'dengo', mid), rm = g(next, 'req', mid), rp = g(prev, 'req', mid);
+    if (mm && mp && mm.status !== mp.status) msg = mm.status === 'going' ? `${pn} está indo dar dengo! 🏃` : mm.status === 'cant' ? `${pn} não consegue agora` : 'Dengo entregue 💛';
+    else if (rm && rp && rm.status !== rp.status) msg = rm.status === 'going' ? `${pn} está indo! 🏃` : rm.status === 'cant' ? `${pn} não consegue agora` : 'Pedido entregue ✓';
+    else if (next.mood && next.mood[pid] != null && (!prev.mood || prev.mood[pid] !== next.mood[pid])) msg = `${pn} marcou como está: ${MOODS[next.mood[pid]].e}`;
+  }
+  if (msg) { toast(msg); buzz(); }
+}
+
+/* ---------- ações ---------- */
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const randomCode = () => Array.from({ length: 6 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+async function reserveCode(uid, name) {
+  for (let i = 0; i < 6; i++) {
+    const code = randomCode(), ref = doc(db, 'codes', code);
+    if (!(await getDoc(ref)).exists()) { await setDoc(ref, { uid, name }); return code; }
+  }
+  throw new Error('Não consegui gerar seu código. Tente de novo.');
+}
+const cRef = () => doc(db, 'couples', S.me.coupleId);
+const log = (text, icon = 'heart', tone = 'o') => addDoc(collection(cRef(), 'hist'), { text, icon, tone, ts: Date.now() });
+const nm = () => first(S.me.name), pnm = () => first(S.partner.name);
+async function safe(fn) { try { await fn(); return true; } catch (e) { console.error(e); toast('Não consegui enviar. Confira a internet.'); return false; } }
+
+const act = {
+  async signUp(name, email, pw) {
+    const cred = await createUserWithEmailAndPassword(auth, email, pw);
+    try { await updateProfile(cred.user, { displayName: name }); } catch (e) {}
+    const code = await reserveCode(cred.user.uid, name);
+    await setDoc(doc(db, 'users', cred.user.uid), { name, email, code, partnerUid: null, coupleId: null, theme: S.theme || 'coral', createdAt: Date.now() });
+  },
+  async connect(codeInput) {
+    const m = S.me, code = String(codeInput || '').trim().toUpperCase();
+    if (code.length !== 6) throw new Error('O código tem 6 letras e números.');
+    const snap = await getDoc(doc(db, 'codes', code));
+    if (!snap.exists()) throw new Error('Não achei esse código. Confira com seu amor.');
+    const { uid: otherUid, name: otherName } = snap.data();
+    if (otherUid === m.uid) throw new Error('Esse é o seu próprio código. Digite o do seu amor.');
+    const cid = [m.uid, otherUid].sort().join('_');
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'users', otherUid), { partnerUid: m.uid, coupleId: cid });
+    batch.update(doc(db, 'users', m.uid), { partnerUid: otherUid, coupleId: cid });
+    batch.set(doc(db, 'couples', cid), { members: [m.uid, otherUid], since: todayISO(), mood: {}, req: {}, dengo: {}, presence: null, note: null, createdAt: Date.now() });
+    try { await batch.commit(); }
+    catch (e) {
+      if (e && e.code === 'permission-denied') throw new Error('Esse código já está conectado a outra conta.');
+      throw new Error('Não consegui conectar. Confira a internet e tente de novo.');
+    }
+    try { await addDoc(collection(db, 'couples', cid, 'hist'), { text: `${first(m.name)} e ${first(otherName)} se conectaram`, icon: 'heart', tone: 'o', ts: Date.now() }); } catch (e) {}
+    return first(otherName);
+  },
+  setMood: (k) => safe(async () => {
+    await updateDoc(cRef(), { [`mood.${S.me.uid}`]: k });
+    await log(`${nm()} marcou o mood: ${MOODS[k].e} ${MOODS[k].n}`);
+    toast(`${pnm()} já sabe como você está`);
+  }),
+  sendPedido: (text) => safe(async () => {
+    await updateDoc(cRef(), { [`req.${S.me.uid}`]: { text, status: 'pending', ts: Date.now() } });
+    await log(`${nm()} fez um pedido: "${text}"`, 'pill', 'b');
+    toast(`Pedido enviado para ${pnm()}`);
+  }),
+  sendDengo: (kind, note) => safe(async () => {
+    await updateDoc(cRef(), { [`dengo.${S.me.uid}`]: { kind, note, status: 'pending', ts: Date.now() } });
+    await log(`${nm()} pediu dengo: ${kind}${note ? ` ("${note}")` : ''}`);
+    toast(`Dengo pedido para ${pnm()}`);
+  }),
+  respond: (kind, status) => safe(async () => {
+    const field = kind === 'req' ? 'req' : 'dengo', what = kind === 'req' ? 'o pedido' : 'o dengo';
+    await updateDoc(cRef(), { [`${field}.${S.partner.uid}.status`]: status });
+    await log({
+      going: `${nm()} está indo atender ${what} de ${pnm()}`,
+      cant: `${nm()} não consegue agora: ${what} de ${pnm()}`,
+      done: kind === 'req' ? `${nm()} entregou o pedido` : `${nm()} deu o dengo`
+    }[status]);
+    toast(status === 'done' ? (kind === 'req' ? 'Pedido entregue!' : 'Dengo dado!') : `Aviso enviado para ${pnm()}`);
+  }),
+  clearMine: (kind) => safe(() => updateDoc(cRef(), { [`${kind === 'req' ? 'req' : 'dengo'}.${S.me.uid}`]: deleteField() })),
+  setPresence: (kind) => safe(async () => {
+    const cur = S.couple.presence;
+    if (cur && cur.by === S.me.uid && cur.kind === kind) { await updateDoc(cRef(), { presence: null }); toast('Aviso removido'); }
+    else {
+      await updateDoc(cRef(), { presence: { by: S.me.uid, kind } });
+      await log(kind === 'stay' ? `${nm()} pediu: fique comigo` : `${nm()} precisa ficar a sós`, kind === 'stay' ? 'heart' : 'lotus', kind === 'stay' ? 'g' : 'v');
+      toast(`Aviso enviado para ${pnm()}`);
+    }
+  }),
+  sendNote: (text) => safe(async () => {
+    await updateDoc(cRef(), { note: { from: S.me.uid, text, ts: Date.now() } });
+    await log(`${nm()} mandou: "${text}"`, 'msg', 'o');
+    toast(`Mensagem enviada para ${pnm()}`);
+  }),
+  addDrawing: (strokes) => safe(async () => {
+    await addDoc(collection(cRef(), 'mural'), { by: S.me.uid, strokes: JSON.stringify(strokes), ts: Date.now() });
+    await log(`${nm()} deixou um desenho no mural`, 'brush', 'o');
+    toast(`Desenho enviado para ${pnm()}`);
+  }),
+  setTheme: (k) => safe(() => updateDoc(doc(db, 'users', S.me.uid), { theme: k })),
+  setName: (v) => safe(async () => { await updateDoc(doc(db, 'users', S.me.uid), { name: v }); toast('Nome atualizado'); }),
+  setSince: (iso) => safe(() => updateDoc(cRef(), { since: iso }))
+};
+
+/* ---------- peças de tela ---------- */
+const avColor = u => (S.me && S.me.partnerUid ? ([S.me.uid, S.me.partnerUid].sort()[0] === u.uid ? AV[0] : AV[1]) : AV[0]);
+const av = u => `<span class="av" style="background:${avColor(u)}" title="${esc(u.name)}">${esc(first(u.name).charAt(0).toUpperCase())}</span>`;
+function drawingSvg(strokes) {
+  let list = []; try { list = typeof strokes === 'string' ? JSON.parse(strokes) : strokes || []; } catch (e) {}
+  return `<div class="mural-thumb"><svg viewBox="0 0 640 400" width="100%" height="100%">${list.map(s => `<path d="${esc(s.d)}" stroke="${esc(s.c)}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`).join('')}</svg></div>`;
+}
+function hero() {
+  return `<header class="hero"><h1>Olá, ${esc(first(S.me.name))}</h1>
+    <div class="pair" aria-label="Casal">${av(S.me)}${I.heartF}${av(S.partner)}</div></header>`;
+}
+function facesHtml(mood, interactive) {
+  return `<div class="faces">${MOODS.map((m, k) => {
+    const on = mood === k;
+    return interactive
+      ? `<button class="face ${on ? 'on' : ''}" data-mood="${k}" aria-label="${m.n}" aria-pressed="${on}">${m.e}</button>`
+      : `<span class="face ${on ? 'on' : ''}" title="${m.n}">${m.e}</span>`;
+  }).join('')}</div>`;
+}
+function reqBody(kind, r) {
+  return kind === 'req'
+    ? `<div class="item"><span class="ico b">${I.pill}</span><span>${esc(r.text)}</span></div>`
+    : `<div class="item"><span class="ico o">${I.heart}</span><span><b>${esc(r.kind)}</b>${r.note ? `<br><span class="mut">${esc(r.note)}</span>` : ''}</span></div>`;
+}
+function incomingCard(kind, r, pn) {
+  if (!r) return '';
+  const d = `data-kind="${kind}"`;
+  const title = kind === 'req' ? `${pn} fez um pedido` : `${pn} pediu Dengo! 💛`;
+  const done = kind === 'req' ? 'ENTREGUEI O PEDIDO' : 'DEI O DENGO';
+  if (r.status === 'pending') return `<section class="card"><h2>${title}</h2><div style="height:10px"></div>${reqBody(kind, r)}
+    <button class="cta" data-req="going" ${d}>ESTOU INDO</button><button class="link" data-req="cant" ${d}>Não consigo agora</button></section>`;
+  if (r.status === 'going') return `<section class="card"><h2>Você está indo!</h2><p class="sub">${pn} sabe que você está a caminho.</p>${reqBody(kind, r)}
+    <button class="cta" data-req="done" ${d}>${done}</button></section>`;
+  if (r.status === 'cant') return `<section class="card"><h2>Você avisou que não consegue</h2><p class="sub">${pn} sabe que agora não dá. Quando der:</p>${reqBody(kind, r)}
+    <button class="cta" data-req="going" ${d}>AGORA CONSIGO</button></section>`;
+  return '';
+}
+function dengoCard(pn) {
+  const r = (S.couple.dengo || {})[S.me.uid];
+  if (r && r.status === 'pending') return `<section class="card dengo left"><h2>Você pediu dengo</h2><div style="height:10px"></div>${reqBody('dengo', r)}<div class="status"><span class="dot"></span>Esperando ${pn} responder</div></section>`;
+  if (r && r.status === 'going') return `<section class="card dengo left"><h2>${pn} está indo dar dengo! 💛</h2><div style="height:10px"></div>${reqBody('dengo', r)}</section>`;
+  if (r && r.status === 'cant') return `<section class="card dengo left"><h2>${pn} não consegue agora</h2><p class="sub">Vai te dar dengo assim que puder.</p>${reqBody('dengo', r)}<button class="cta" data-clear="dengo">PEDIR DE NOVO</button></section>`;
+  return `<section class="card dengo left"><h2>Precisa de dengo?</h2><p class="sub">${r ? 'O último dengo foi entregue ✓ ' : ''}Não é pedido prático: é carinho. Escolha o tipo e chame ${pn}.</p>
+    <div class="chips" style="margin-top:0">${DENGOS.map(k => `<button class="chip" data-dk="${k}" aria-pressed="${S.dKind === k}">${k}</button>`).join('')}</div>
+    <input class="tx" id="dNote" maxlength="80" placeholder="Quer contar mais? (opcional)" aria-label="Recado do dengo" value="${esc(S.dNote)}">
+    <button class="cta" data-send="dengo">${I.heartF}PEDIR DENGO</button></section>`;
+}
+function pedidoCard(pn) {
+  const r = (S.couple.req || {})[S.me.uid];
+  if (r && r.status === 'pending') return `<section class="card left"><h2>Seu pedido</h2><div style="height:10px"></div>${reqBody('req', r)}<div class="status"><span class="dot"></span>Esperando ${pn} responder</div></section>`;
+  if (r && r.status === 'going') return `<section class="card left"><h2>${pn} está indo! 🏃</h2><div style="height:10px"></div>${reqBody('req', r)}</section>`;
+  if (r && r.status === 'cant') return `<section class="card left"><h2>${pn} não consegue agora</h2><p class="sub">Vai avisar quando puder.</p>${reqBody('req', r)}<button class="cta text" data-clear="req">Fazer outro pedido</button></section>`;
+  return `<section class="card left"><h2>Fazer um pedido</h2><p class="sub">${r ? 'Seu último pedido foi entregue ✓ ' : ''}Algo prático que você precisa agora.</p>
+    <textarea class="tx" id="pedText" rows="2" maxlength="160" placeholder="Ex.: bolsa quente e ibuprofeno 600mg" aria-label="O que você precisa">${esc(S.ped)}</textarea>
+    <div class="chips">${QUICK.map(q => `<button class="chip" data-chip="${q}">+ ${q}</button>`).join('')}</div>
+    <button class="cta" data-send="req">ENVIAR PEDIDO</button></section>`;
+}
+
+const SUG = {
+  0: [['mural', 'Desenhar no mural'], ['msg:Estou aqui pra o que você precisar. Te amo.', 'Enviar uma mensagem fofa'], ['msg:Desculpa pela cagada. Posso te compensar?', 'Pedir desculpas pela cagada']],
+  1: [['msg:Estou pensando em você agora. Quer conversar?', 'Enviar uma mensagem fofa'], ['mural', 'Desenhar no mural'], ['msg:Vou passar aí com um abraço.', 'Avisar que vai dar um abraço']],
+  2: [['msg:Como está sendo seu dia?', 'Perguntar como está o dia'], ['mural', 'Deixar um desenho no mural'], ['msg:Que tal um chá mais tarde?', 'Convidar para um chá']],
+  3: [['msg:Adorei ver você bem hoje!', 'Elogiar o dia'], ['mural', 'Desenhar no mural'], ['msg:Vamos fazer algo legal hoje?', 'Chamar para um programa']],
+  4: [['msg:Você radiante me deixa radiante também!', 'Comemorar junto'], ['mural', 'Desenhar no mural'], ['msg:Vamos sair pra comemorar?', 'Chamar para sair']]
+};
+
+function authPage() {
+  const su = S.mode === 'signup';
+  return `<div class="authhero"><h1 class="logo">Dengo</h1><p>O cuidado de vocês dois, num lugar só.</p></div>
+  <div class="stack"><section class="card left">
+    <div class="tabs" role="tablist">
+      <button role="tab" data-mode="login" aria-selected="${!su}">Entrar</button>
+      <button role="tab" data-mode="signup" aria-selected="${su}">Criar conta</button>
+    </div>
+    <form id="authForm" novalidate>
+      ${su ? `<label class="field">Seu nome<input id="fName" autocomplete="given-name" placeholder="Como o seu amor te chama"></label>` : ''}
+      <label class="field">E-mail<input id="fEmail" type="email" autocomplete="email" inputmode="email" placeholder="voce@email.com"></label>
+      <label class="field">Senha<input id="fPass" type="password" autocomplete="${su ? 'new-password' : 'current-password'}" placeholder="${su ? 'Pelo menos 6 caracteres' : 'Sua senha'}"></label>
+      ${S.err ? `<p class="err" role="alert">${esc(S.err)}</p>` : ''}
+      <button class="cta" type="submit" ${S.busy ? 'disabled' : ''}>${S.busy ? 'AGUARDE...' : su ? 'CRIAR CONTA' : 'ENTRAR'}</button>
+      ${!su ? `<button class="link" type="button" data-forgot="1">Esqueci a senha</button>` : ''}
+    </form>
+  </section></div>`;
+}
+
+function pairPage() {
+  return `<div class="top"><h1>Olá, ${esc(first(S.me.name))}</h1></div>
+  <div class="stack plain">
+    <section class="card"><h2>Seu código de casal</h2><p class="sub">Mande este código para o seu amor digitar no app dele(a).</p>
+      <div class="code">${esc(S.me.code)}</div>
+      <button class="copy" data-copy="${esc(S.me.code)}">Copiar código</button>
+      <button class="copy" data-share="${esc(S.me.code)}">Compartilhar</button>
+      <div class="status" style="margin-top:12px"><span class="dot"></span>Esperando a conexão</div></section>
+    <div class="or">ou</div>
+    <section class="card left"><h2>Seu amor já criou a conta?</h2><p class="sub">Digite o código que aparece na tela dele(a).</p>
+      <form id="pairForm" novalidate>
+        <label class="field" style="margin-top:0">Código do seu amor<input id="fCode" class="codein" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="ABC123"></label>
+        ${S.err ? `<p class="err" role="alert">${esc(S.err)}</p>` : ''}
+        <button class="cta" type="submit" ${S.busy ? 'disabled' : ''}>${S.busy ? 'CONECTANDO...' : 'CONECTAR'}</button>
+      </form></section>
+    <button class="out" data-logout="1">Sair da conta</button>
+  </div>`;
+}
+
+function homePage() {
+  const c = S.couple, me = S.me, p = S.partner, pn = esc(first(p.name));
+  const incoming = incomingCard('dengo', (c.dengo || {})[p.uid], pn) + incomingCard('req', (c.req || {})[p.uid], pn);
+  const pres = c.presence, mine = k => pres && pres.by === me.uid && pres.kind === k;
+  const banner = pres && pres.by === p.uid
+    ? `<div class="banner ${pres.kind}">${pres.kind === 'stay' ? `💚 ${pn} quer você por perto. Fique com ${pn}.` : `💜 ${pn} precisa ficar a sós. Dê um tempinho e avise que está por aqui.`}</div>` : '';
+  const quick = `<div class="two">
+    <button class="quick" data-pres="stay" aria-pressed="${!!mine('stay')}"><span class="ico g">${I.heart}</span><span class="t">Fique comigo</span></button>
+    <button class="quick" data-pres="alone" aria-pressed="${!!mine('alone')}"><span class="ico v">${I.lotus}</span><span class="t">Preciso ficar a sós</span></button></div>`;
+  const moods = c.mood || {}, myMood = moods[me.uid], pm = moods[p.uid];
+  const moodMine = `<section class="card"><h2>Como você se sente hoje?</h2><p class="sub">${pn} saberá como cuidar melhor de você hoje</p>${facesHtml(myMood, true)}</section>`;
+  const moodPar = pm == null
+    ? `<section class="card"><h2>Mood de ${pn} hoje</h2><p class="sub">${pn} ainda não marcou como está. Que tal perguntar?</p></section>`
+    : `<section class="card"><h2>Mood de ${pn} hoje</h2><p class="sub">${MOODS[pm].n}</p>${facesHtml(pm, false)}
+      <p class="sug-t">Algumas sugestões do que você pode fazer:</p>
+      ${SUG[pm].map(s => `<button class="sug" data-sug="${esc(s[0])}"><span class="h">${I.heartF}</span>${esc(s[1])}<span class="go">${I.chev}</span></button>`).join('')}</section>`;
+  const note = c.note && c.note.from === p.uid ? `<div class="note"><b>${pn} mandou um recado</b><p>${esc(c.note.text)}</p></div>` : '';
+  const last = S.mural.find(m => m.by === p.uid);
+  const mural = `<section class="card left"><h2>Mural</h2><p class="sub">${last ? `${pn} deixou algo para você ❤️` : `${pn} ainda não deixou nada. Que tal começar?`}</p>
+    ${last ? drawingSvg(last.strokes) : ''}
+    <button class="gobtn" data-go="mural">${last ? 'Ir para mural' : 'Desenhar no mural'} ${I.chev}</button></section>`;
+  return `${hero()}<div class="stack">${banner}${incoming}${dengoCard(pn)}${pedidoCard(pn)}${quick}${moodMine}${moodPar}${note}${mural}</div>`;
+}
+
+function histPage() {
+  const rows = S.hist.length ? S.hist.map(h => `<div class="hist"><span class="ico ${h.tone || 'o'}">${I[h.icon] || I.heart}</span><div><p>${esc(h.text)}</p><small>${dayLabel(h.ts)}, ${hhmm(h.ts)}</small></div></div>`).join('')
+    : `<p class="empty">Ainda não aconteceu nada. Pedidos, recados e desenhos de vocês aparecem aqui.</p>`;
+  return `<div class="top"><h1>Histórico</h1></div><div class="stack plain"><section class="card left">${rows}</section></div>`;
+}
+
+function perfilPage() {
+  const days = Math.max(0, Math.floor((Date.now() - new Date(S.couple.since + 'T00:00:00').getTime()) / 864e5));
+  const cur = S.me.theme || 'coral';
+  return `<div class="top"><h1>Perfil</h1></div><div class="stack plain">
+    <section class="card"><div class="big">${days}</div><div class="big-l">dias juntos</div>
+      <label class="field">Data que começaram<input type="date" id="since" value="${esc(S.couple.since)}" max="${todayISO()}"></label></section>
+    <section class="card left"><h2>Casal</h2><div style="height:6px"></div>
+      <div class="prow">${av(S.me)}<p>${esc(S.me.name)}<small>Você · ${esc(S.me.email)}</small></p></div>
+      <div class="prow">${av(S.partner)}<p>${esc(S.partner.name)}<small>Seu amor</small></p></div>
+      <label class="field">Seu nome no app<input id="myName" value="${esc(S.me.name)}" maxlength="30"></label></section>
+    <section class="card left"><h2>Tema de cor</h2><p class="sub">A escolha vale só para o seu aparelho.</p>
+      <div class="themes">${THEMES.map(t => `<button class="theme" data-theme="${t.k}" aria-pressed="${cur === t.k}"><i style="background:linear-gradient(135deg,${t.a},${t.b})"></i>${t.n}</button>`).join('')}</div></section>
+    <section class="card left"><h2>Dica</h2><p class="sub" style="margin:0">Para abrir o Dengo como um app: no menu do navegador, toque em <b>Adicionar à tela inicial</b> (Chrome) ou em <b>Compartilhar &gt; Adicionar à Tela de Início</b> (iPhone).</p></section>
+    <button class="out" data-logout="1">Sair da conta</button></div>`;
+}
+
+function muralPage() {
+  return `<div class="top"><button class="back" data-go="back" aria-label="Voltar">${I.back}</button><h1>Mural</h1></div>
+  <div class="stack plain">
+    <section class="card left"><h2>Desenhe para ${esc(first(S.partner.name))}</h2><p class="sub">Use o dedo e deixe um recado.</p>
+      <div class="canvas-wrap"><svg id="cv" viewBox="0 0 640 400" width="100%" height="100%"><g id="strokes"></g><path id="live" d="" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="tools">${PENS.map(c => `<button class="sw" data-pen="${c}" style="background:${c}" aria-label="Cor ${c}" aria-pressed="${S.pen === c}"></button>`).join('')}
+        <button class="clr" id="undo">Desfazer</button><button class="clr" id="clr" style="margin-left:0">Limpar</button></div>
+      <button class="cta" id="sendDraw">DEIXAR NO MURAL</button></section>
+    <section class="card left"><h2>Recados</h2><div style="height:10px"></div><div class="gal" id="gal">${galleryHtml()}</div></section>
+  </div>`;
+}
+function galleryHtml() {
+  if (!S.mural.length) return `<p class="empty" style="grid-column:1/-1">Nenhum recado ainda. O primeiro desenho fica por sua conta.</p>`;
+  return S.mural.map(m => { const mine = m.by === S.me.uid; const n = mine ? 'Você' : esc(first(S.partner.name));
+    return `<figure>${drawingSvg(m.strokes)}<figcaption>${n}, ${dayLabel(m.ts)} ${hhmm(m.ts)}</figcaption></figure>`; }).join('');
+}
+const strokeHtml = s => `<path d="${s.d}" stroke="${s.c}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
+function setupDraw() {
+  const svg = $('cv'), g = $('strokes'), live = $('live');
+  if (!svg) return;
+  let cur = null;
+  const pt = e => { const r = svg.getBoundingClientRect(); return [Math.round((e.clientX - r.left) * 640 / r.width), Math.round((e.clientY - r.top) * 400 / r.height)]; };
+  const redraw = () => { g.innerHTML = draft.map(strokeHtml).join(''); };
+  redraw();
+  svg.addEventListener('pointerdown', e => {
+    e.preventDefault(); svg.setPointerCapture(e.pointerId);
+    const p = pt(e); cur = { c: S.pen, d: `M${p[0]} ${p[1]} L${p[0] + 1} ${p[1]}`, last: p };
+    live.setAttribute('stroke', cur.c); live.setAttribute('d', cur.d);
+  });
+  svg.addEventListener('pointermove', e => {
+    if (!cur) return;
+    const p = pt(e);
+    if (Math.abs(p[0] - cur.last[0]) + Math.abs(p[1] - cur.last[1]) < 3) return;
+    cur.d += ` L${p[0]} ${p[1]}`; cur.last = p; live.setAttribute('d', cur.d);
+  });
+  const end = () => { if (!cur) return; draft.push({ c: cur.c, d: cur.d }); cur = null; live.setAttribute('d', ''); redraw(); };
+  svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
+  $('undo').onclick = () => { draft.pop(); redraw(); };
+  $('clr').onclick = () => { draft = []; redraw(); };
+  $('sendDraw').onclick = async () => {
+    if (!draft.length) { toast('Desenhe algo antes de enviar'); return; }
+    if (JSON.stringify(draft).length > 180000) { toast('Desenho grande demais. Apague um pouco e tente de novo.'); return; }
+    const ok = await act.addDrawing(draft);
+    if (ok) { draft = []; S.screen = null; render(true); }
+  };
+}
+
+/* ---------- render ---------- */
+let pending = false;
+const isTyping = () => { const a = document.activeElement; return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA') && $('screen').contains(a); };
+
+function render(force) {
+  const inMural = S.me && S.partner && S.couple && S.screen === 'mural';
+  if (!force) {
+    if (isTyping()) { pending = true; return; }
+    if (inMural && $('cv')) { const gal = $('gal'); if (gal) gal.innerHTML = galleryHtml(); return; }
+  }
+  pending = false;
+  const sc = $('screen'), keep = sc.scrollTop, nav = $('nav');
+  let html = '', inApp = false;
+  if (!S.authReady) html = '<p class="empty" style="margin-top:40vh">Carregando...</p>';
+  else if (!S.user) html = authPage();
+  else if (!S.meReady || !S.me) html = `<p class="empty" style="margin-top:36vh">Preparando seu perfil...</p><button class="out" data-logout="1" style="width:auto;margin:10px auto;padding:12px 24px">Sair da conta</button>`;
+  else if (!S.me.partnerUid) html = pairPage();
+  else if (!S.partner || !S.couple) html = `<p class="empty" style="margin-top:36vh">Carregando o casal...</p><button class="out" data-logout="1" style="width:auto;margin:10px auto;padding:12px 24px">Sair da conta</button>`;
+  else {
+    inApp = true;
+    html = S.screen === 'mural' ? muralPage() : S.tab === 'home' ? homePage() : S.tab === 'hist' ? histPage() : perfilPage();
+  }
+  document.documentElement.setAttribute('data-accent', (S.me && S.me.theme) || S.theme || 'coral');
+  if (S.me && S.me.theme) S.theme = S.me.theme;
+  sc.innerHTML = html;
+  sc.classList.toggle('noNav', !inApp);
+  sc.scrollTop = (S.screen === 'mural' || !inApp) ? 0 : keep;
+  nav.style.display = inApp && S.screen !== 'mural' ? 'flex' : 'none';
+  nav.innerHTML = [['home', 'Início', 'home'], ['hist', 'Histórico', 'hist'], ['perfil', 'Perfil', 'user']]
+    .map(([k, l, ic]) => `<button data-tab="${k}" ${S.tab === k && !S.screen ? 'aria-current="page"' : ''}>${I[ic]}<span>${l}</span></button>`).join('');
+  if (inApp && S.screen === 'mural') setupDraw();
+  const since = $('since');
+  if (since) since.onchange = e => { if (e.target.value) act.setSince(e.target.value); };
+  const myName = $('myName');
+  if (myName) myName.onchange = e => {
+    const v = e.target.value.trim();
+    if (v.length >= 2) { if (v !== S.me.name) act.setName(v); } else { toast('O nome precisa ter pelo menos 2 letras'); e.target.value = S.me.name; }
+  };
+}
+document.addEventListener('focusout', () => { setTimeout(() => { if (pending && !isTyping()) render(true); }, 600); });
+document.addEventListener('input', e => {
+  if (e.target.id === 'pedText') S.ped = e.target.value;
+  if (e.target.id === 'dNote') S.dNote = e.target.value;
+});
+
+/* ---------- login / conexão ---------- */
+function authFail(m) {
+  S.err = m; S.busy = false;
+  const e = $('fEmail') ? $('fEmail').value : '', n = $('fName') ? $('fName').value : '';
+  render(true);
+  if ($('fEmail')) $('fEmail').value = e; if ($('fName')) $('fName').value = n;
+}
+async function doAuth() {
+  if (S.busy) return;
+  const su = S.mode === 'signup';
+  const name = su ? $('fName').value.trim() : '', email = $('fEmail').value.trim().toLowerCase(), pw = $('fPass').value;
+  if (su && name.length < 2) return authFail('Digite seu nome (pelo menos 2 letras).');
+  if (!/^\S+@\S+\.\S+$/.test(email)) return authFail('Digite um e-mail válido, como voce@email.com.');
+  if (pw.length < 6) return authFail(su ? 'A senha precisa ter pelo menos 6 caracteres.' : 'Digite sua senha.');
+  S.busy = true; S.err = '';
+  const btn = document.querySelector('#authForm button[type=submit]'); if (btn) { btn.disabled = true; btn.textContent = 'AGUARDE...'; }
+  try {
+    if (su) await act.signUp(name, email, pw); else await signInWithEmailAndPassword(auth, email, pw);
+    S.busy = false; S.err = '';
+  } catch (e) { authFail(e && e.code ? authMessage(e) : (e && e.message) || 'Não deu certo. Tente de novo.'); }
+}
+async function doPair() {
+  if (S.busy) return;
+  const code = ($('fCode').value || '').trim();
+  S.busy = true; S.err = '';
+  const btn = document.querySelector('#pairForm button[type=submit]'); if (btn) { btn.disabled = true; btn.textContent = 'CONECTANDO...'; }
+  try { const n = await act.connect(code); S.busy = false; toast(`Conectado com ${n}!`); }
+  catch (e) { S.busy = false; S.err = e.message || 'Não consegui conectar.'; render(true); }
+}
+
+/* ---------- eventos ---------- */
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.id === 'authForm') doAuth();
+  if (e.target.id === 'pairForm') doPair();
+});
+document.addEventListener('click', async e => {
+  const t = e.target.closest('button'); if (!t) return;
+  const d = t.dataset;
+  if (d.logout) { await fbSignOut(auth); S.tab = 'home'; S.screen = null; S.err = ''; S.mode = 'login'; render(true); return; }
+  if (d.mode) { S.mode = d.mode; S.err = ''; render(true); return; }
+  if (d.forgot) {
+    const em = ($('fEmail').value || '').trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(em)) return authFail('Digite seu e-mail acima e toque em "Esqueci a senha".');
+    try { await sendPasswordResetEmail(auth, em); S.err = ''; toast('Enviamos um e-mail para trocar a senha'); } catch (err) { authFail(authMessage(err)); }
+    return;
+  }
+  if (d.copy) { try { await navigator.clipboard.writeText(d.copy); toast('Código copiado'); } catch (err) { toast('Selecione o código e copie'); } return; }
+  if (d.share) {
+    const text = `Entra no Dengo comigo! Crie sua conta e digite meu código: ${d.share}\n${location.href.split('#')[0]}`;
+    try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); toast('Convite copiado'); } } catch (err) {}
+    return;
+  }
+  if (!S.me || !S.partner || !S.couple) return;
+  if (d.tab) { S.tab = d.tab; S.screen = null; render(true); return; }
+  if (d.go === 'mural') { draft = []; S.screen = 'mural'; render(true); return; }
+  if (d.go === 'back') { S.screen = null; render(true); return; }
+  if (d.pen) { S.pen = d.pen; document.querySelectorAll('[data-pen]').forEach(x => x.setAttribute('aria-pressed', x === t)); return; }
+  if (d.theme) { await act.setTheme(d.theme); return; }
+  if (d.mood !== undefined) { await act.setMood(+d.mood); return; }
+  if (d.pres) { await act.setPresence(d.pres); return; }
+  if (d.chip) {
+    const cur = S.ped.trim();
+    if (!cur.toLowerCase().includes(d.chip.toLowerCase())) S.ped = cur ? cur + ', ' + d.chip : d.chip;
+    const ta = $('pedText'); if (ta) { ta.value = S.ped; ta.focus(); }
+    return;
+  }
+  if (d.dk) { S.dKind = S.dKind === d.dk ? null : d.dk; document.querySelectorAll('[data-dk]').forEach(x => x.setAttribute('aria-pressed', x.dataset.dk === S.dKind)); return; }
+  if (d.send === 'req') {
+    const text = S.ped.trim();
+    if (!text) { toast('Escreva o que você precisa'); const ta = $('pedText'); if (ta) ta.focus(); return; }
+    if (await act.sendPedido(text)) { S.ped = ''; render(true); }
+    return;
+  }
+  if (d.send === 'dengo') {
+    if (await act.sendDengo(S.dKind || 'Dengo', S.dNote.trim())) { S.dKind = null; S.dNote = ''; render(true); }
+    return;
+  }
+  if (d.clear) { await act.clearMine(d.clear); return; }
+  if (d.req) { await act.respond(d.kind || 'req', d.req); return; }
+  if (d.sug) {
+    if (d.sug === 'mural') { draft = []; S.screen = 'mural'; render(true); return; }
+    if (d.sug.startsWith('msg:')) await act.sendNote(d.sug.slice(4));
+  }
+});
+
+render(true);
+
+</script>
+</body>
+</html>
