@@ -248,6 +248,12 @@ textarea{font-family:inherit}
 .hist .ico svg{width:20px;height:20px}
 .gal .mural-thumb{aspect-ratio:16/10}
 .canvas-wrap svg{touch-action:none;cursor:crosshair;display:block}
+.keep{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}
+.keep input{width:20px;height:20px;accent-color:var(--accent);flex:0 0 auto}
+.dz-btn{color:#D8264B}
+.out.danger{background:#D8264B;color:#fff}
+.card.dz{border:2px solid #D8264B}
+.two .out{padding:14px 8px}
 </style>
 </head>
 <body>
@@ -279,11 +285,12 @@ const I={
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
   getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut as fbSignOut, sendPasswordResetEmail, updateProfile
+  signOut as fbSignOut, sendPasswordResetEmail, updateProfile,
+  setPersistence, browserLocalPersistence, browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
   getFirestore, doc, collection, onSnapshot, updateDoc, setDoc, getDoc, addDoc, deleteField,
-  writeBatch, query, orderBy, limit
+  writeBatch, query, orderBy, limit, getDocs
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 /* ====== SUA CONFIGURAÇÃO DO FIREBASE ====== */
@@ -342,7 +349,10 @@ function authMessage(e) {
 }
 
 /* ---------- estado ---------- */
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 const S = {
+  keep: lsGet('dengo_keep') !== '0', email: lsGet('dengo_email') || '', name: '', confirmUnpair: false,
   user: null, authReady: false, me: null, meReady: false, partner: null, couple: null, hist: [], mural: [],
   mode: 'login', err: '', busy: false, tab: 'home', screen: null, pen: PENS[0], ped: '', dKind: null, dNote: '', theme: 'coral'
 };
@@ -362,7 +372,12 @@ onAuthStateChanged(auth, u => {
   S.user = u; S.authReady = true;
   if (u) {
     unsubMe = onSnapshot(doc(db, 'users', u.uid),
-      snap => { S.me = snap.exists() ? { uid: snap.id, ...snap.data() } : null; S.meReady = true; syncCouple(); render(); },
+      snap => {
+        const prevPu = S.me && S.me.partnerUid;
+        S.me = snap.exists() ? { uid: snap.id, ...snap.data() } : null; S.meReady = true;
+        if (prevPu && S.me && !S.me.partnerUid && !S.selfUnpair) deliver('O casal foi desfeito', 'Seu par desfez a conexão.', 'unpair');
+        syncCouple(); render();
+      },
       () => { S.meReady = true; render(); });
   }
   render(true);
@@ -375,38 +390,71 @@ function syncCouple() {
     if (pu) unsubPartner = onSnapshot(doc(db, 'users', pu), s => { S.partner = s.exists() ? { uid: s.id, ...s.data() } : null; render(); }, () => {});
   }
   if (cid !== curCid) {
-    coupleUnsubs.forEach(f => f()); coupleUnsubs = []; curCid = cid; S.couple = null; S.hist = []; S.mural = [];
+    coupleUnsubs.forEach(f => f()); coupleUnsubs = []; curCid = cid; S.couple = null; S.hist = []; S.mural = []; S.muralLoaded = false;
     if (cid) {
       const cr = doc(db, 'couples', cid);
       coupleUnsubs = [
         onSnapshot(cr, s => { const next = s.exists() ? { id: s.id, ...s.data() } : null; announce(S.couple, next); S.couple = next; render(); }, () => {}),
         onSnapshot(query(collection(cr, 'hist'), orderBy('ts', 'desc'), limit(60)), s => { S.hist = s.docs.map(d => ({ id: d.id, ...d.data() })); render(); }, () => {}),
-        onSnapshot(query(collection(cr, 'mural'), orderBy('ts', 'desc'), limit(12)), s => { S.mural = s.docs.map(d => ({ id: d.id, ...d.data() })); render(); }, () => {})
+        onSnapshot(query(collection(cr, 'mural'), orderBy('ts', 'desc'), limit(12)), s => {
+          const list = s.docs.map(d => ({ id: d.id, ...d.data() }));
+          if (S.muralLoaded && list.length && list[0].by === S.me.partnerUid && !S.mural.some(m => m.id === list[0].id))
+            deliver(`${first(S.partner && S.partner.name) || 'Seu amor'} deixou um desenho ❤️`, 'Veja no mural.', 'mural');
+          S.mural = list; S.muralLoaded = true; render();
+        }, () => {})
       ];
     }
   }
 }
 
-/* Avisos dentro do app quando o par faz algo (o app precisa estar aberto) */
+/* ---------- avisos: notificação do navegador (ou aviso na tela) ---------- */
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+async function systemNotify(title, body, tag) {
+  try {
+    if (!('Notification' in window) || Notification.permission !== 'granted' || lsGet('dengo_notif') === '0') return false;
+    const opts = { body: body || '', icon: 'icon-192.png', badge: 'icon-192.png', tag: tag || 'dengo', renotify: true, vibrate: [120, 60, 120] };
+    let reg = null;
+    try {
+      if ('serviceWorker' in navigator) {
+        reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) reg = await Promise.race([navigator.serviceWorker.ready, new Promise(r => setTimeout(() => r(null), 1500))]);
+      }
+    } catch (e) {}
+    if (reg && reg.showNotification) { await reg.showNotification(title, opts); return true; }
+    new Notification(title, opts); return true;
+  } catch (e) { return false; }
+}
+function clearUnread() { S.unread = 0; document.title = 'Dengo'; }
+window.addEventListener('focus', clearUnread);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') clearUnread(); });
+
+// Se o app está fora de foco: notificação do sistema. Se está aberto na tela: aviso rápido.
+function deliver(title, body, tag) {
+  const away = !document.hasFocus() || document.visibilityState === 'hidden';
+  if (away) {
+    S.unread = (S.unread || 0) + 1; document.title = `(${S.unread}) Dengo`;
+    systemNotify(title, body, tag);
+  } else { toast(body ? `${title}: ${body}` : title); buzz(); }
+}
+
 function announce(prev, next) {
   if (!prev || !next || !S.me || !S.me.partnerUid) return;
   const pid = S.me.partnerUid, mid = S.me.uid, pn = first(S.partner && S.partner.name) || 'Seu amor';
   const g = (o, k, u) => (o && o[k] && o[k][u]) || null;
+  const msgs = [];
   const nd = g(next, 'dengo', pid), pd = g(prev, 'dengo', pid);
   const nr = g(next, 'req', pid), pr = g(prev, 'req', pid);
-  let msg = null;
-  if (nd && (!pd || pd.ts !== nd.ts) && nd.status === 'pending') msg = `${pn} pediu dengo 💛 ${nd.kind}`;
-  else if (nr && (!pr || pr.ts !== nr.ts) && nr.status === 'pending') msg = `${pn} fez um pedido: ${nr.text}`;
-  else if (next.note && next.note.from === pid && (!prev.note || prev.note.ts !== next.note.ts)) msg = `${pn} mandou um recado 💌`;
-  else if (next.presence && next.presence.by === pid && (!prev.presence || prev.presence.kind !== next.presence.kind || prev.presence.by !== pid))
-    msg = next.presence.kind === 'stay' ? `${pn} quer você por perto 💚` : `${pn} precisa ficar a sós 💜`;
-  else {
-    const mm = g(next, 'dengo', mid), mp = g(prev, 'dengo', mid), rm = g(next, 'req', mid), rp = g(prev, 'req', mid);
-    if (mm && mp && mm.status !== mp.status) msg = mm.status === 'going' ? `${pn} está indo dar dengo! 🏃` : mm.status === 'cant' ? `${pn} não consegue agora` : 'Dengo entregue 💛';
-    else if (rm && rp && rm.status !== rp.status) msg = rm.status === 'going' ? `${pn} está indo! 🏃` : rm.status === 'cant' ? `${pn} não consegue agora` : 'Pedido entregue ✓';
-    else if (next.mood && next.mood[pid] != null && (!prev.mood || prev.mood[pid] !== next.mood[pid])) msg = `${pn} marcou como está: ${MOODS[next.mood[pid]].e}`;
-  }
-  if (msg) { toast(msg); buzz(); }
+  if (nd && (!pd || pd.ts !== nd.ts) && nd.status === 'pending') msgs.push([`${pn} pediu dengo 💛`, `${nd.kind}${nd.note ? ' · ' + nd.note : ''}`, 'dengo']);
+  if (nr && (!pr || pr.ts !== nr.ts) && nr.status === 'pending') msgs.push([`${pn} fez um pedido`, nr.text, 'pedido']);
+  if (next.note && next.note.from === pid && (!prev.note || prev.note.ts !== next.note.ts)) msgs.push([`${pn} mandou um recado 💌`, next.note.text, 'recado']);
+  if (next.presence && next.presence.by === pid && (!prev.presence || prev.presence.kind !== next.presence.kind || prev.presence.by !== pid))
+    msgs.push(next.presence.kind === 'stay' ? [`${pn} quer você por perto 💚`, 'Fique com ele(a) por um tempinho.', 'presenca'] : [`${pn} precisa ficar a sós 💜`, 'Dê um tempinho e avise que está por aqui.', 'presenca']);
+  const mm = g(next, 'dengo', mid), mp = g(prev, 'dengo', mid), rm = g(next, 'req', mid), rp = g(prev, 'req', mid);
+  if (mm && mp && mm.status !== mp.status) msgs.push(mm.status === 'going' ? [`${pn} está indo dar dengo! 🏃`, mm.kind, 'dengo-st'] : mm.status === 'cant' ? [`${pn} não consegue agora`, 'Vai dar dengo assim que puder.', 'dengo-st'] : ['Dengo entregue 💛', `${pn} cuidou de você.`, 'dengo-st']);
+  if (rm && rp && rm.status !== rp.status) msgs.push(rm.status === 'going' ? [`${pn} está indo! 🏃`, rm.text, 'pedido-st'] : rm.status === 'cant' ? [`${pn} não consegue agora`, 'Vai avisar quando puder.', 'pedido-st'] : ['Pedido entregue ✓', `${pn} cuidou do seu pedido.`, 'pedido-st']);
+  if (next.mood && next.mood[pid] != null && (!prev.mood || prev.mood[pid] !== next.mood[pid])) msgs.push([`${pn} marcou como está hoje`, `${MOODS[next.mood[pid]].e} ${MOODS[next.mood[pid]].n}`, 'mood']);
+  msgs.slice(0, 3).forEach(m => deliver(m[0], m[1], m[2]));
 }
 
 /* ---------- ações ---------- */
@@ -450,6 +498,31 @@ const act = {
     }
     try { await addDoc(collection(db, 'couples', cid, 'hist'), { text: `${first(m.name)} e ${first(otherName)} se conectaram`, icon: 'heart', tone: 'o', ts: Date.now() }); } catch (e) {}
     return first(otherName);
+  },
+  async unpair() {
+    const cid = S.me.coupleId, pu = S.me.partnerUid, mu = S.me.uid;
+    S.selfUnpair = true; setTimeout(() => { S.selfUnpair = false; }, 4000);
+    try {
+      const cr = doc(db, 'couples', cid);
+      for (const sub of ['hist', 'mural']) {
+        const snap = await getDocs(collection(cr, sub));
+        for (let i = 0; i < snap.docs.length; i += 400) {
+          const b = writeBatch(db);
+          snap.docs.slice(i, i + 400).forEach(d => b.delete(doc(cr, sub, d.id)));
+          await b.commit();
+        }
+      }
+      const b = writeBatch(db);
+      b.update(doc(db, 'users', pu), { partnerUid: null, coupleId: null });
+      b.update(doc(db, 'users', mu), { partnerUid: null, coupleId: null });
+      b.delete(cr);
+      await b.commit();
+      return true;
+    } catch (e) {
+      console.error(e);
+      toast('Não consegui desfazer o casal. Confira a internet e se as regras novas do Firebase foram publicadas.');
+      return false;
+    }
   },
   setMood: (k) => safe(async () => {
     await updateDoc(cRef(), { [`mood.${S.me.uid}`]: k });
@@ -576,9 +649,10 @@ function authPage() {
       <button role="tab" data-mode="signup" aria-selected="${su}">Criar conta</button>
     </div>
     <form id="authForm" novalidate>
-      ${su ? `<label class="field">Seu nome<input id="fName" autocomplete="given-name" placeholder="Como o seu amor te chama"></label>` : ''}
-      <label class="field">E-mail<input id="fEmail" type="email" autocomplete="email" inputmode="email" placeholder="voce@email.com"></label>
-      <label class="field">Senha<input id="fPass" type="password" autocomplete="${su ? 'new-password' : 'current-password'}" placeholder="${su ? 'Pelo menos 6 caracteres' : 'Sua senha'}"></label>
+      ${su ? `<label class="field">Seu nome<input id="fName" name="name" autocomplete="given-name" placeholder="Como o seu amor te chama" value="${esc(S.name)}"></label>` : ''}
+      <label class="field">E-mail<input id="fEmail" name="username" type="email" autocomplete="username" inputmode="email" placeholder="voce@email.com" value="${esc(S.email)}"></label>
+      <label class="field">Senha<input id="fPass" name="password" type="password" autocomplete="${su ? 'new-password' : 'current-password'}" placeholder="${su ? 'Pelo menos 6 caracteres' : 'Sua senha'}"></label>
+      <label class="keep"><input type="checkbox" id="fKeep" ${S.keep ? 'checked' : ''}> Manter conectado neste aparelho</label>
       ${S.err ? `<p class="err" role="alert">${esc(S.err)}</p>` : ''}
       <button class="cta" type="submit" ${S.busy ? 'disabled' : ''}>${S.busy ? 'AGUARDE...' : su ? 'CRIAR CONTA' : 'ENTRAR'}</button>
       ${!su ? `<button class="link" type="button" data-forgot="1">Esqueci a senha</button>` : ''}
@@ -626,13 +700,30 @@ function homePage() {
   const mural = `<section class="card left"><h2>Mural</h2><p class="sub">${last ? `${pn} deixou algo para você ❤️` : `${pn} ainda não deixou nada. Que tal começar?`}</p>
     ${last ? drawingSvg(last.strokes) : ''}
     <button class="gobtn" data-go="mural">${last ? 'Ir para mural' : 'Desenhar no mural'} ${I.chev}</button></section>`;
-  return `${hero()}<div class="stack">${banner}${incoming}${dengoCard(pn)}${pedidoCard(pn)}${quick}${moodMine}${moodPar}${note}${mural}</div>`;
+  return `${hero()}<div class="stack">${notifAsk(pn)}${banner}${incoming}${dengoCard(pn)}${pedidoCard(pn)}${quick}${moodMine}${moodPar}${note}${mural}</div>`;
 }
 
 function histPage() {
   const rows = S.hist.length ? S.hist.map(h => `<div class="hist"><span class="ico ${h.tone || 'o'}">${I[h.icon] || I.heart}</span><div><p>${esc(h.text)}</p><small>${dayLabel(h.ts)}, ${hhmm(h.ts)}</small></div></div>`).join('')
     : `<p class="empty">Ainda não aconteceu nada. Pedidos, recados e desenhos de vocês aparecem aqui.</p>`;
   return `<div class="top"><h1>Histórico</h1></div><div class="stack plain"><section class="card left">${rows}</section></div>`;
+}
+
+function notifCard() {
+  const sup = 'Notification' in window, perm = sup ? Notification.permission : 'unsupported', on = lsGet('dengo_notif') !== '0';
+  let body;
+  if (!sup) body = `<p class="sub" style="margin:0">Este navegador não mostra notificações. No iPhone, primeiro use <b>Compartilhar &gt; Adicionar à Tela de Início</b> e abra o Dengo pelo ícone.</p>`;
+  else if (perm === 'default') body = `<p class="sub">Receba um aviso quando seu amor pedir dengo, responder, deixar um recado ou um desenho.</p><button class="cta" data-notif="ask">ATIVAR NOTIFICAÇÕES</button>`;
+  else if (perm === 'denied') body = `<p class="sub" style="margin:0">As notificações estão bloqueadas neste navegador. Toque no cadeado ao lado do endereço, libere <b>Notificações</b> e recarregue a página.</p>`;
+  else body = `<label class="keep" style="margin-top:0"><input type="checkbox" id="notifOn" ${on ? 'checked' : ''}> Receber avisos neste aparelho</label>
+    <button class="out" data-notif="test" style="margin-top:12px">Enviar um aviso de teste</button>
+    <p class="sub" style="margin:12px 0 0">Os avisos chegam enquanto o Dengo estiver aberto, mesmo em segundo plano. Com o navegador ou o app totalmente fechado, não chegam.</p>`;
+  return `<section class="card left"><h2>Notificações</h2>${body}</section>`;
+}
+function notifAsk(pn) {
+  if (!('Notification' in window) || Notification.permission !== 'default' || lsGet('dengo_notif_dismiss') === '1') return '';
+  return `<section class="card dengo left"><h2>Quer receber avisos?</h2><p class="sub">Ative as notificações para o Dengo avisar quando ${pn} pedir dengo, responder ou deixar um recado.</p>
+    <button class="cta" data-notif="ask">ATIVAR NOTIFICAÇÕES</button><button class="link" data-notif="later">Agora não</button></section>`;
 }
 
 function perfilPage() {
@@ -648,6 +739,12 @@ function perfilPage() {
     <section class="card left"><h2>Tema de cor</h2><p class="sub">A escolha vale só para o seu aparelho.</p>
       <div class="themes">${THEMES.map(t => `<button class="theme" data-theme="${t.k}" aria-pressed="${cur === t.k}"><i style="background:linear-gradient(135deg,${t.a},${t.b})"></i>${t.n}</button>`).join('')}</div></section>
     <section class="card left"><h2>Dica</h2><p class="sub" style="margin:0">Para abrir o Dengo como um app: no menu do navegador, toque em <b>Adicionar à tela inicial</b> (Chrome) ou em <b>Compartilhar &gt; Adicionar à Tela de Início</b> (iPhone).</p></section>
+    ${notifCard()}
+    ${S.confirmUnpair
+      ? `<section class="card left dz"><h2>Desfazer o casal?</h2><p class="sub">Isso desconecta você de ${esc(first(S.partner.name))}. O <b>histórico, o mural e os pedidos</b> de vocês serão apagados. As contas continuam, e vocês podem se conectar de novo com o código.</p>
+          <div class="two"><button class="out" data-unpair="cancel" style="margin-top:0">Cancelar</button><button class="out danger" data-unpair="yes" style="margin-top:0">Sim, desfazer</button></div></section>`
+      : `<section class="card left"><h2>Desfazer o casal</h2><p class="sub" style="margin-bottom:12px">Desconecta você de ${esc(first(S.partner.name))}. Dá para se conectar de novo depois, com o código.</p>
+          <button class="out dz-btn" data-unpair="ask" style="margin-top:0">Desfazer o casal</button></section>`}
     <button class="out" data-logout="1">Sair da conta</button></div>`;
 }
 
@@ -738,6 +835,9 @@ function render(force) {
   };
 }
 document.addEventListener('focusout', () => { setTimeout(() => { if (pending && !isTyping()) render(true); }, 600); });
+document.addEventListener('change', e => {
+  if (e.target.id === 'notifOn') { lsSet('dengo_notif', e.target.checked ? '1' : '0'); toast(e.target.checked ? 'Avisos ligados neste aparelho' : 'Avisos desligados neste aparelho'); }
+});
 document.addEventListener('input', e => {
   if (e.target.id === 'pedText') S.ped = e.target.value;
   if (e.target.id === 'dNote') S.dNote = e.target.value;
@@ -746,9 +846,10 @@ document.addEventListener('input', e => {
 /* ---------- login / conexão ---------- */
 function authFail(m) {
   S.err = m; S.busy = false;
-  const e = $('fEmail') ? $('fEmail').value : '', n = $('fName') ? $('fName').value : '';
+  if ($('fEmail')) S.email = $('fEmail').value;
+  if ($('fName')) S.name = $('fName').value;
+  if ($('fKeep')) S.keep = $('fKeep').checked;
   render(true);
-  if ($('fEmail')) $('fEmail').value = e; if ($('fName')) $('fName').value = n;
 }
 async function doAuth() {
   if (S.busy) return;
@@ -757,9 +858,11 @@ async function doAuth() {
   if (su && name.length < 2) return authFail('Digite seu nome (pelo menos 2 letras).');
   if (!/^\S+@\S+\.\S+$/.test(email)) return authFail('Digite um e-mail válido, como voce@email.com.');
   if (pw.length < 6) return authFail(su ? 'A senha precisa ter pelo menos 6 caracteres.' : 'Digite sua senha.');
-  S.busy = true; S.err = '';
+  S.busy = true; S.err = ''; S.keep = $('fKeep').checked; S.email = email;
+  lsSet('dengo_keep', S.keep ? '1' : '0'); lsSet('dengo_email', email);
   const btn = document.querySelector('#authForm button[type=submit]'); if (btn) { btn.disabled = true; btn.textContent = 'AGUARDE...'; }
   try {
+    try { await setPersistence(auth, S.keep ? browserLocalPersistence : browserSessionPersistence); } catch (e) {}
     if (su) await act.signUp(name, email, pw); else await signInWithEmailAndPassword(auth, email, pw);
     S.busy = false; S.err = '';
   } catch (e) { authFail(e && e.code ? authMessage(e) : (e && e.message) || 'Não deu certo. Tente de novo.'); }
@@ -783,6 +886,18 @@ document.addEventListener('click', async e => {
   const t = e.target.closest('button'); if (!t) return;
   const d = t.dataset;
   if (d.logout) { await fbSignOut(auth); S.tab = 'home'; S.screen = null; S.err = ''; S.mode = 'login'; render(true); return; }
+  if (d.unpair) {
+    if (d.unpair === 'ask') { S.confirmUnpair = true; render(true); }
+    else if (d.unpair === 'cancel') { S.confirmUnpair = false; render(true); }
+    else if (d.unpair === 'yes') {
+      t.disabled = true; t.textContent = 'Desfazendo...';
+      const ok = await act.unpair();
+      S.confirmUnpair = false; S.tab = 'home'; S.screen = null;
+      if (ok) toast('Casal desfeito. Vocês podem se conectar de novo quando quiserem.');
+      render(true);
+    }
+    return;
+  }
   if (d.mode) { S.mode = d.mode; S.err = ''; render(true); return; }
   if (d.forgot) {
     const em = ($('fEmail').value || '').trim().toLowerCase();
@@ -797,6 +912,21 @@ document.addEventListener('click', async e => {
     return;
   }
   if (!S.me || !S.partner || !S.couple) return;
+  if (d.notif) {
+    if (d.notif === 'later') { lsSet('dengo_notif_dismiss', '1'); render(true); return; }
+    if (d.notif === 'ask') {
+      if (!('Notification' in window)) { toast('Este navegador não suporta notificações.'); return; }
+      const r = await Notification.requestPermission();
+      if (r === 'granted') { lsSet('dengo_notif', '1'); toast('Notificações ativadas!'); await systemNotify('Notificações ativadas 💛', 'Você vai receber os avisos do Dengo aqui.', 'teste'); }
+      else if (r === 'denied') toast('As notificações foram bloqueadas pelo navegador.');
+      render(true); return;
+    }
+    if (d.notif === 'test') {
+      const ok = await systemNotify('Aviso de teste 💛', 'Se você viu isso, as notificações estão funcionando.', 'teste');
+      toast(ok ? 'Aviso enviado. Olhe a barra de notificações.' : 'Não consegui enviar. Veja se as notificações estão liberadas.');
+      return;
+    }
+  }
   if (d.tab) { S.tab = d.tab; S.screen = null; render(true); return; }
   if (d.go === 'mural') { draft = []; S.screen = 'mural'; render(true); return; }
   if (d.go === 'back') { S.screen = null; render(true); return; }
